@@ -1,5 +1,11 @@
 # DJI Onboard SDK ROS 4.1.0
 
+## Shun Lee's Modify
+
+- add launch file
+- add the support of the stereo vision with opencv 4
+
+
 ## Latest Update
 
 OSDK-ROS 4.1.0 was released on 20 January 2021.You need to read newest update below to get update information. Please see the [release notes](https://developer.dji.com/onboard-sdk/downloads/) and [ROS sample setup](https://developer.dji.com/cn/onboard-sdk/documentation/development-workflow/environment-setup.html#linux-with-ros) for more information.And We will update [ROS Wiki](http://wiki.ros.org/dji_sdk/) later.
