@@ -5,3 +5,6 @@
 *sdk.launch
 build.sh
 .idea/
+.ccls-cache/
+.cache/
+compile_commands.json

@@ -1,37 +1,35 @@
 #ifndef ONBOARDSDK_STEREO_FRAME_H
 #define ONBOARDSDK_STEREO_FRAME_H
 
-#include <memory>
-#include <opencv2/opencv.hpp>
-#include "frame.hpp"
 #include "camera_param.hpp"
 #include "dji_ack.hpp"
 #include "dji_log.hpp"
+#include "frame.hpp"
 #include "point_cloud_viewer.hpp"
+#include <memory>
+#include <opencv2/opencv.hpp>
 
 #ifdef USE_GPU
-  #include <opencv2/cudastereo.hpp>
-  #include <opencv2/cudawarping.hpp>
+#include <opencv2/cudastereo.hpp>
+#include <opencv2/cudawarping.hpp>
 #endif
 
 #ifdef USE_OPEN_CV_CONTRIB
-  #include <opencv2/ximgproc/disparity_filter.hpp>
+#include <opencv2/ximgproc/disparity_filter.hpp>
 #endif
 
+#include "ros/ros.h"
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/point_cloud2_iterator.h"
 #include "visualization_msgs/MarkerArray.h"
-#include "ros/ros.h"
 
 #ifdef USE_DARKNET_ROS
 #include "darknet_ros_msgs/BoundingBoxes.h"
 #endif
 
-namespace M210_STEREO
-{
+namespace M210_STEREO {
 
-class StereoFrame
-{
+class StereoFrame {
 public:
   typedef std::shared_ptr<StereoFrame> Ptr;
 
@@ -56,7 +54,8 @@ public:
   void unprojectROSPtCloud();
 
 #ifdef USE_DARKNET_ROS
-  void calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box, visualization_msgs::MarkerArray &marker_array);
+  void calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box,
+                      visualization_msgs::MarkerArray &marker_array);
 #endif
 
   inline cv::Mat getRectLeftImg() { return this->rectified_img_left_; }
@@ -67,10 +66,14 @@ public:
 
   inline cv::viz::WCloud getPtCloud() { return this->pt_cloud_; }
 
-  inline sensor_msgs::PointCloud2 getROSPtCloud() { return this->ros_pt_cloud_; }
+  inline sensor_msgs::PointCloud2 getROSPtCloud() {
+    return this->ros_pt_cloud_;
+  }
 
 #ifdef USE_OPEN_CV_CONTRIB
-  inline cv::Mat getFilteredDispMap() { return this->filtered_disparity_map_8u_; }
+  inline cv::Mat getFilteredDispMap() {
+    return this->filtered_disparity_map_8u_;
+  }
 #endif
 
 protected:
@@ -113,21 +116,21 @@ protected:
 
   // due to rectification, the image boarder are blank
   // we cut them out
-  const int     border_size_;
-  const int     trunc_img_width_end_;
-  const int     trunc_img_height_end_;
-  std::vector<uint8_t>  color_buffer_;
-  cv::Mat               color_mat_;
-  cv::Mat_<cv::Vec3f>   mat_vec3_pt_;
-  cv::viz::WCloud       pt_cloud_;
+  const int border_size_;
+  const int trunc_img_width_end_;
+  const int trunc_img_height_end_;
+  std::vector<uint8_t> color_buffer_;
+  cv::Mat color_mat_;
+  cv::Mat_<cv::Vec3f> mat_vec3_pt_;
+  cv::viz::WCloud pt_cloud_;
 
 #ifdef USE_GPU
-  cv::cuda::GpuMat  cuda_rectified_mapping_[2][2];
+  cv::cuda::GpuMat cuda_rectified_mapping_[2][2];
 
-  cv::cuda::GpuMat  cuda_rect_src;
-  cv::cuda::GpuMat  cuda_rectified_img_left_;
-  cv::cuda::GpuMat  cuda_rectified_img_right_;
-  cv::cuda::GpuMat  cuda_disparity_map_8u;
+  cv::cuda::GpuMat cuda_rect_src;
+  cv::cuda::GpuMat cuda_rectified_img_left_;
+  cv::cuda::GpuMat cuda_rectified_img_right_;
+  cv::cuda::GpuMat cuda_disparity_map_8u;
 #endif
 
 #ifdef USE_OPEN_CV_CONTRIB
@@ -142,9 +145,9 @@ protected:
   //! ROS related
   sensor_msgs::PointCloud2 ros_pt_cloud_;
   sensor_msgs::PointCloud2Modifier *cloud_modifier_;
-  sensor_msgs::PointCloud2Iterator<float>   *x_it_;
-  sensor_msgs::PointCloud2Iterator<float>   *y_it_;
-  sensor_msgs::PointCloud2Iterator<float>   *z_it_;
+  sensor_msgs::PointCloud2Iterator<float> *x_it_;
+  sensor_msgs::PointCloud2Iterator<float> *y_it_;
+  sensor_msgs::PointCloud2Iterator<float> *z_it_;
   sensor_msgs::PointCloud2Iterator<uint8_t> *r_it_;
   sensor_msgs::PointCloud2Iterator<uint8_t> *g_it_;
   sensor_msgs::PointCloud2Iterator<uint8_t> *b_it_;
@@ -153,4 +156,4 @@ protected:
 };
 
 } // namespace M210_STEREO
-#endif //ONBOARDSDK_STEREO_FRAME_H
+#endif // ONBOARDSDK_STEREO_FRAME_H
