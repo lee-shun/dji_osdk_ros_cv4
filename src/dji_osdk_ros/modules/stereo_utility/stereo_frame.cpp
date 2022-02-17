@@ -25,45 +25,37 @@
 using namespace M210_STEREO;
 using namespace cv;
 
-StereoFrame::StereoFrame(CameraParam::Ptr left_cam,
-                         CameraParam::Ptr right_cam,
+StereoFrame::StereoFrame(CameraParam::Ptr left_cam, CameraParam::Ptr right_cam,
                          int num_disp, int block_size)
-  : camera_left_ptr_(left_cam)
-  , camera_right_ptr_(right_cam)
-  , num_disp_(num_disp)
-  , block_size_(block_size)
-  , color_buffer_(VGA_WIDTH*VGA_HEIGHT)
-  , mat_vec3_pt_(VGA_HEIGHT, VGA_WIDTH, Vec3f(0, 0, 0))
-  , color_mat_(VGA_HEIGHT, VGA_WIDTH, CV_8UC1, &color_buffer_[0])
-  , pt_cloud_(mat_vec3_pt_, color_mat_)
-  , raw_disparity_map_(Mat(VGA_HEIGHT, VGA_WIDTH, CV_16SC1))
-  , border_size_(num_disp)
-  , trunc_img_height_end_(VGA_HEIGHT - border_size_)
-  , trunc_img_width_end_(VGA_WIDTH - border_size_)
-{
-  if(!this->initStereoParam())
-  {
+    : camera_left_ptr_(left_cam),
+      camera_right_ptr_(right_cam),
+      num_disp_(num_disp),
+      block_size_(block_size),
+      color_buffer_(VGA_WIDTH * VGA_HEIGHT),
+      mat_vec3_pt_(VGA_HEIGHT, VGA_WIDTH, Vec3f(0, 0, 0)),
+      color_mat_(VGA_HEIGHT, VGA_WIDTH, CV_8UC1, &color_buffer_[0]),
+      pt_cloud_(mat_vec3_pt_, color_mat_),
+      raw_disparity_map_(Mat(VGA_HEIGHT, VGA_WIDTH, CV_16SC1)),
+      border_size_(num_disp),
+      trunc_img_height_end_(VGA_HEIGHT - border_size_),
+      trunc_img_width_end_(VGA_WIDTH - border_size_) {
+  if (!this->initStereoParam()) {
     DERROR("Failed to init stereo parameters\n");
   }
 
-  Mat m210_vga_stereo_left  = Mat(VGA_HEIGHT,VGA_WIDTH, CV_8U);
-  Mat m210_vga_stereo_right = Mat(VGA_HEIGHT,VGA_WIDTH, CV_8U);
+  Mat m210_vga_stereo_left = Mat(VGA_HEIGHT, VGA_WIDTH, CV_8U);
+  Mat m210_vga_stereo_right = Mat(VGA_HEIGHT, VGA_WIDTH, CV_8U);
 
-  frame_left_ptr_   = Frame::createFrame(0, 0, m210_vga_stereo_left);
-  frame_right_ptr_  = Frame::createFrame(0, 0, m210_vga_stereo_right);
+  frame_left_ptr_ = Frame::createFrame(0, 0, m210_vga_stereo_left);
+  frame_right_ptr_ = Frame::createFrame(0, 0, m210_vga_stereo_right);
 }
 
-StereoFrame::~StereoFrame()
-{
+StereoFrame::~StereoFrame() {}
 
-}
-
-bool
-StereoFrame::initStereoParam()
-{
-  param_rect_left_ =  Config::get<Mat>("leftRectificationMatrix");
+bool StereoFrame::initStereoParam() {
+  param_rect_left_ = Config::get<Mat>("leftRectificationMatrix");
   param_rect_right_ = Config::get<Mat>("rightRectificationMatrix");
-  param_proj_left_ =  Config::get<Mat>("leftProjectionMatrix");
+  param_proj_left_ = Config::get<Mat>("leftProjectionMatrix");
   param_proj_right_ = Config::get<Mat>("rightProjectionMatrix");
 
   principal_x_ = param_proj_left_.at<double>(0, 2);
@@ -73,17 +65,13 @@ StereoFrame::initStereoParam()
   baseline_x_fx_ = -param_proj_right_.at<double>(0, 3);
 
   initUndistortRectifyMap(camera_left_ptr_->getIntrinsic(),
-                              camera_left_ptr_->getDistortion(),
-                              param_rect_left_,
-                              param_proj_left_,
-                              Size(VGA_WIDTH, VGA_HEIGHT), CV_32F,
-                              rectified_mapping_[0][0], rectified_mapping_[0][1]);
-  initUndistortRectifyMap(camera_right_ptr_->getIntrinsic(),
-                              camera_right_ptr_->getDistortion(),
-                              param_rect_right_,
-                              param_proj_right_,
-                              Size(VGA_WIDTH, VGA_HEIGHT), CV_32F,
-                              rectified_mapping_[1][0], rectified_mapping_[1][1]);
+                          camera_left_ptr_->getDistortion(), param_rect_left_,
+                          param_proj_left_, Size(VGA_WIDTH, VGA_HEIGHT), CV_32F,
+                          rectified_mapping_[0][0], rectified_mapping_[0][1]);
+  initUndistortRectifyMap(
+      camera_right_ptr_->getIntrinsic(), camera_right_ptr_->getDistortion(),
+      param_rect_right_, param_proj_right_, Size(VGA_WIDTH, VGA_HEIGHT), CV_32F,
+      rectified_mapping_[1][0], rectified_mapping_[1][1]);
 
 #ifdef USE_GPU
   for (int k = 0; k < 2; ++k) {
@@ -98,21 +86,23 @@ StereoFrame::initStereoParam()
 #endif
 
 #ifdef USE_OPEN_CV_CONTRIB
-  wls_filter_ = ximgproc::createDisparityWLSFilter(block_matcher_); // left_matcher
+  wls_filter_ =
+      ximgproc::createDisparityWLSFilter(block_matcher_);  // left_matcher
   wls_filter_->setLambda(8000.0);
   wls_filter_->setSigmaColor(1.5);
 
   right_matcher_ = ximgproc::createRightMatcher(block_matcher_);
 #endif
 
-  ros_pt_cloud_.header.frame_id = "map"; // Please change this accordingly
+  ros_pt_cloud_.header.frame_id = "map";  // Please change this accordingly
   ros_pt_cloud_.height = VGA_HEIGHT;
   ros_pt_cloud_.width = VGA_WIDTH;
-  ros_pt_cloud_.point_step = sizeof(float)*3;
-  ros_pt_cloud_.row_step = sizeof(float)*3*VGA_WIDTH;
+  ros_pt_cloud_.point_step = sizeof(float) * 3;
+  ros_pt_cloud_.row_step = sizeof(float) * 3 * VGA_WIDTH;
   ros_pt_cloud_.is_bigendian = 0;
   ros_pt_cloud_.is_dense = 0;
-  size_t num_pt_cloud = (trunc_img_height_end_-border_size_)*(trunc_img_width_end_-border_size_);
+  size_t num_pt_cloud = (trunc_img_height_end_ - border_size_) *
+                        (trunc_img_width_end_ - border_size_);
   // modifier resize this container
   ros_pt_cloud_.data.resize(num_pt_cloud);
 
@@ -128,7 +118,7 @@ StereoFrame::initStereoParam()
   b_it_ = new sensor_msgs::PointCloud2Iterator<uint8_t>(ros_pt_cloud_, "b");
 
   //! Setup visualization info
-  marker_template_.header.frame_id = "map"; // Please change this accordingly
+  marker_template_.header.frame_id = "map";  // Please change this accordingly
   marker_template_.header.stamp = ros::Time();
   marker_template_.ns = "object";
   marker_template_.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
@@ -141,7 +131,7 @@ StereoFrame::initStereoParam()
   marker_template_.scale.x = 5;
   marker_template_.scale.y = 0.1;
   marker_template_.scale.z = 0.2;
-  marker_template_.color.a = 1.0; // Don't forget to set the alpha!
+  marker_template_.color.a = 1.0;  // Don't forget to set the alpha!
   marker_template_.color.r = 0.0;
   marker_template_.color.g = 1.0;
   marker_template_.color.b = 0.0;
@@ -149,62 +139,51 @@ StereoFrame::initStereoParam()
   return true;
 }
 
-StereoFrame::Ptr
-StereoFrame::createStereoFrame(CameraParam::Ptr left_cam, CameraParam::Ptr right_cam)
-{
+StereoFrame::Ptr StereoFrame::createStereoFrame(CameraParam::Ptr left_cam,
+                                                CameraParam::Ptr right_cam) {
   return std::make_shared<StereoFrame>(left_cam, right_cam);
 }
 
-void
-StereoFrame::readStereoImgs(const DJI::OSDK::ACK::StereoVGAImgData &imgs)
-{
-  memcpy(frame_left_ptr_->raw_image.data,
-         imgs.img_vec[0], sizeof(char)*VGA_HEIGHT*VGA_WIDTH);
-  memcpy(frame_right_ptr_->raw_image.data,
-         imgs.img_vec[1], sizeof(char)*VGA_HEIGHT*VGA_WIDTH);
+void StereoFrame::readStereoImgs(const DJI::OSDK::ACK::StereoVGAImgData &imgs) {
+  memcpy(frame_left_ptr_->raw_image.data, imgs.img_vec[0],
+         sizeof(char) * VGA_HEIGHT * VGA_WIDTH);
+  memcpy(frame_right_ptr_->raw_image.data, imgs.img_vec[1],
+         sizeof(char) * VGA_HEIGHT * VGA_WIDTH);
 
-  frame_left_ptr_-> id  = imgs.frame_index;
-  frame_right_ptr_->id  = imgs.frame_index;
-  frame_left_ptr_-> time_stamp  = imgs.time_stamp;
-  frame_right_ptr_->time_stamp  = imgs.time_stamp;
+  frame_left_ptr_->id = imgs.frame_index;
+  frame_right_ptr_->id = imgs.frame_index;
+  frame_left_ptr_->time_stamp = imgs.time_stamp;
+  frame_right_ptr_->time_stamp = imgs.time_stamp;
 }
 
-void
-StereoFrame::rectifyImgs()
-{
+void StereoFrame::rectifyImgs() {
 #ifdef USE_GPU
   cuda_rect_src.upload(frame_left_ptr_->getImg());
   cuda::remap(cuda_rect_src, cuda_rectified_img_left_,
-                  cuda_rectified_mapping_[0][0],
-                  cuda_rectified_mapping_[0][1],
-                  INTER_LINEAR);
+              cuda_rectified_mapping_[0][0], cuda_rectified_mapping_[0][1],
+              INTER_LINEAR);
   cuda_rectified_img_left_.download(rectified_img_left_);
 
   cuda_rect_src.upload(frame_right_ptr_->getImg());
   cuda::remap(cuda_rect_src, cuda_rectified_img_right_,
-                  cuda_rectified_mapping_[1][0],
-                  cuda_rectified_mapping_[1][1],
-                  INTER_LINEAR);
+              cuda_rectified_mapping_[1][0], cuda_rectified_mapping_[1][1],
+              INTER_LINEAR);
   cuda_rectified_img_right_.download(rectified_img_right_);
 #else
   remap(frame_left_ptr_->getImg(), rectified_img_left_,
-            rectified_mapping_[0][0], rectified_mapping_[0][1], INTER_LINEAR);
+        rectified_mapping_[0][0], rectified_mapping_[0][1], INTER_LINEAR);
   remap(frame_right_ptr_->getImg(), rectified_img_right_,
-            rectified_mapping_[1][0], rectified_mapping_[1][1], INTER_LINEAR);
+        rectified_mapping_[1][0], rectified_mapping_[1][1], INTER_LINEAR);
 #endif
 }
 
-void
-StereoFrame::computeDisparityMap()
-{
-
+void StereoFrame::computeDisparityMap() {
 #ifdef USE_GPU
   cuda::GpuMat cuda_disp_left;
 
   // GPU implementation of stereoBM outputs uint8_t, i.e. CV_8U
   block_matcher_->compute(cuda_rectified_img_left_.clone(),
-                          cuda_rectified_img_right_.clone(),
-                          cuda_disp_left);
+                          cuda_rectified_img_right_.clone(), cuda_disp_left);
 
   cuda_disp_left.download(raw_disparity_map_);
 
@@ -215,32 +194,28 @@ StereoFrame::computeDisparityMap()
   raw_disparity_map_.convertTo(raw_disparity_map_, CV_16S, 16);
 #else
   // CPU implementation of stereoBM outputs short int, i.e. CV_16S
-  block_matcher_->compute(rectified_img_left_, rectified_img_right_, raw_disparity_map_);
+  block_matcher_->compute(rectified_img_left_, rectified_img_right_,
+                          raw_disparity_map_);
 
   raw_disparity_map_.convertTo(disparity_map_8u_, CV_8UC1, 0.0625);
 #endif
-
 }
 
-void
-StereoFrame::filterDisparityMap()
-{
+void StereoFrame::filterDisparityMap() {
 #ifdef USE_OPEN_CV_CONTRIB
-  right_matcher_->compute(rectified_img_right_, rectified_img_left_, raw_right_disparity_map_);
+  right_matcher_->compute(rectified_img_right_, rectified_img_left_,
+                          raw_right_disparity_map_);
 
   // Only takes CV_16S type cv::Mat
-  wls_filter_->filter(raw_disparity_map_,
-                      rectified_img_left_,
-                      filtered_disparity_map_,
-                      raw_right_disparity_map_);
+  wls_filter_->filter(raw_disparity_map_, rectified_img_left_,
+                      filtered_disparity_map_, raw_right_disparity_map_);
 
-  filtered_disparity_map_.convertTo(filtered_disparity_map_8u_, CV_8UC1, 0.0625);
+  filtered_disparity_map_.convertTo(filtered_disparity_map_8u_, CV_8UC1,
+                                    0.0625);
 #endif
 }
 
-void
-StereoFrame::unprojectPtCloud()
-{
+void StereoFrame::unprojectPtCloud() {
   // due to rectification, the image boarder are blank
   // we cut them out
   const int border_size = num_disp_;
@@ -249,66 +224,69 @@ StereoFrame::unprojectPtCloud()
 
   mat_vec3_pt_ = Mat_<Vec3f>(VGA_HEIGHT, VGA_WIDTH, Vec3f(0, 0, 0));
 
-  for(int v = border_size; v < trunc_img_height_end; ++v)
-  {
-    for(int u = border_size; u < trunc_img_width_end; ++u)
-    {
+  for (int v = border_size; v < trunc_img_height_end; ++v) {
+    for (int u = border_size; u < trunc_img_width_end; ++u) {
       Vec3f &point = mat_vec3_pt_.at<Vec3f>(v, u);
 
 #ifdef USE_OPEN_CV_CONTRIB
-      float disparity = (float)(filtered_disparity_map_.at<short int>(v, u)*0.0625);
+      float disparity =
+          (float)(filtered_disparity_map_.at<short int>(v, u) * 0.0625);
 #else
-      float disparity = (float)(raw_disparity_map_.at<short int>(v, u)*0.0625);
+      float disparity =
+          (float)(raw_disparity_map_.at<short int>(v, u) * 0.0625);
 #endif
 
       // do not consider pts that are farther than 8.6m, i.e. disparity < 6
-      if(disparity >= 6)
-      {
-        point[2] = baseline_x_fx_/disparity;
-        point[0] = (u-principal_x_)*point[2]/fx_;
-        point[1] = (v-principal_y_)*point[2]/fy_;
+      if (disparity >= 6) {
+        point[2] = baseline_x_fx_ / disparity;
+        point[0] = (u - principal_x_) * point[2] / fx_;
+        point[1] = (v - principal_y_) * point[2] / fy_;
       }
-      color_buffer_[v*VGA_WIDTH+u] = rectified_img_left_.at<uint8_t>(v, u);
+      color_buffer_[v * VGA_WIDTH + u] = rectified_img_left_.at<uint8_t>(v, u);
     }
   }
 
-  color_mat_ = cv::Mat(VGA_HEIGHT, VGA_WIDTH, CV_8UC1, &color_buffer_[0]).clone();
+  color_mat_ =
+      cv::Mat(VGA_HEIGHT, VGA_WIDTH, CV_8UC1, &color_buffer_[0]).clone();
 
-  // @note Unfortunately, calling this WCloud constructor costs about the same amount
-  // of time as we go through each pixel and unproject the pt cloud. Because there's
-  // another nested for-loop inside WCloud implementation
-  // Ideally these can be done in one shot but it involves changing openCV implementation
+  // @note Unfortunately, calling this WCloud constructor costs about the same
+  // amount of time as we go through each pixel and unproject the pt cloud.
+  // Because there's another nested for-loop inside WCloud implementation
+  // Ideally these can be done in one shot but it involves changing openCV
+  // implementation
   // TODO maybe opencv projectPoints() is a good alternative
   pt_cloud_ = viz::WCloud(mat_vec3_pt_, color_mat_);
 }
 
-void
-StereoFrame::unprojectROSPtCloud()
-{
+void StereoFrame::unprojectROSPtCloud() {
   int pt_cloud_count = 0;
-    // due to rectification, the image boarder are blank
+  // due to rectification, the image boarder are blank
   // we cut them out
   const int border_size = num_disp_;
   const int trunc_img_width_end = VGA_WIDTH - border_size;
   const int trunc_img_height_end = VGA_HEIGHT - border_size;
 
-  for(int v = border_size; v < trunc_img_height_end; ++v)
-  {
-    for(int u = border_size; u < trunc_img_width_end; ++u)
-    {
+  for (int v = border_size; v < trunc_img_height_end; ++v) {
+    for (int u = border_size; u < trunc_img_width_end; ++u) {
 #ifdef USE_OPEN_CV_CONTRIB
-      float disparity = (float)(filtered_disparity_map_.at<short int>(v, u)*0.0625);
+      float disparity =
+          (float)(filtered_disparity_map_.at<short int>(v, u) * 0.0625);
 #else
-      float disparity = (float)(raw_disparity_map_.at<short int>(v, u)*0.0625);
+      float disparity =
+          (float)(raw_disparity_map_.at<short int>(v, u) * 0.0625);
 #endif
 
-      **z_it_ = baseline_x_fx_/disparity;
-      **x_it_ = (u-principal_x_)*(**z_it_)/fx_;
-      **y_it_ = (v-principal_y_)*(**z_it_)/fy_;
+      **z_it_ = baseline_x_fx_ / disparity;
+      **x_it_ = (u - principal_x_) * (**z_it_) / fx_;
+      **y_it_ = (v - principal_y_) * (**z_it_) / fy_;
       **r_it_ = **g_it_ = **b_it_ = rectified_img_left_.at<uint8_t>(v, u);
 
-      ++(*x_it_); ++(*y_it_); ++(*z_it_);
-      ++(*r_it_); ++(*g_it_); ++(*b_it_);
+      ++(*x_it_);
+      ++(*y_it_);
+      ++(*z_it_);
+      ++(*r_it_);
+      ++(*g_it_);
+      ++(*b_it_);
 
       ++pt_cloud_count;
     }
@@ -323,10 +301,9 @@ StereoFrame::unprojectROSPtCloud()
 }
 
 #ifdef USE_DARKNET_ROS
-void
-StereoFrame::calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box,
-                            visualization_msgs::MarkerArray &marker_array)
-{
+void StereoFrame::calcObjectInfo(
+    const darknet_ros_msgs::BoundingBoxesConstPtr &b_box,
+    visualization_msgs::MarkerArray &marker_array) {
   ROS_INFO("Got %d detections", (int)b_box->boundingBoxes.size());
 
   marker_array.markers.clear();
@@ -334,7 +311,6 @@ StereoFrame::calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box
 
   for (int i = 0; i < b_box->boundingBoxes.size(); ++i) {
     visualization_msgs::Marker marker = marker_template_;
-
 
     /**
      * Note that the bounding boxes were detected on original image
@@ -351,14 +327,15 @@ StereoFrame::calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box
     roi.width = b_box->boundingBoxes[i].xmax - b_box->boundingBoxes[i].xmin;
     roi.height = b_box->boundingBoxes[i].ymax - b_box->boundingBoxes[i].ymin;
 
-    float v = roi.y + roi.height*0.5;
-    float u = roi.x + roi.width*0.5;
-    float disparity = (float)(filtered_disparity_map_.at<short int>(v, u)*0.0625);
+    float v = roi.y + roi.height * 0.5;
+    float u = roi.x + roi.width * 0.5;
+    float disparity =
+        (float)(filtered_disparity_map_.at<short int>(v, u) * 0.0625);
     float dist_x, dist_y, dist_z;
-    dist_z = baseline_x_fx_/disparity;
-    dist_x = (u-principal_x_)*(dist_z)/fx_;
-    dist_y = (v-principal_y_)*(dist_z)/fy_;
-    float distance = sqrt(dist_z*dist_z + dist_y*dist_y + dist_x*dist_x);
+    dist_z = baseline_x_fx_ / disparity;
+    dist_x = (u - principal_x_) * (dist_z) / fx_;
+    dist_y = (v - principal_y_) * (dist_z) / fy_;
+    float distance = sqrt(dist_z * dist_z + dist_y * dist_y + dist_x * dist_x);
 
     std::stringstream stream_x, stream_y, stream_z, stream_dist;
     stream_x << std::fixed << std::setprecision(2) << dist_x;
@@ -370,10 +347,13 @@ StereoFrame::calcObjectInfo(const darknet_ros_msgs::BoundingBoxesConstPtr &b_box
     stream_dist << std::fixed << std::setprecision(2) << distance;
     std::string distance_str = stream_dist.str();
 
-    marker.text = b_box->boundingBoxes[i].Class + "  " + distance_str + "m\n\tx:" + dist_x_str + "\n\ty:" + dist_y_str + "\n\tz:" + dist_z_str;
+    marker.text = b_box->boundingBoxes[i].Class + "  " + distance_str +
+                  "m\n\tx:" + dist_x_str + "\n\ty:" + dist_y_str +
+                  "\n\tz:" + dist_z_str;
     marker.pose.position.x = dist_x;
     marker.pose.position.y = dist_y;
-    marker.pose.position.z = dist_z-1; // -1 to avoid point cloud and text occlusion
+    marker.pose.position.z =
+        dist_z - 1;  // -1 to avoid point cloud and text occlusion
     marker.header.stamp = ros::Time();
     marker.id = i;
     marker_array.markers[i] = std::move(marker);

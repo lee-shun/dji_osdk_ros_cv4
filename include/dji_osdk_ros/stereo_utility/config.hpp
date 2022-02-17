@@ -4,15 +4,13 @@
 #include <opencv2/core/core.hpp>
 #include <iostream>
 
-namespace M210_STEREO
-{
+namespace M210_STEREO {
 
-class Config
-{
-private:
+class Config {
+ private:
   Config();
 
-public:
+ public:
   ~Config();
 
   static Config& instance();
@@ -22,21 +20,18 @@ public:
   static void setParamFile(const std::string& file_name);
 
   template <typename T>
-  static T get(const std::string& key)
-  {
+  static T get(const std::string& key) {
     T t;
     Config::instancePtr()->file_[key] >> t;
     return t;
   }
 
-private:
+ private:
   static Config* single_instance_;
 
   cv::FileStorage file_;
-
 };
 
-} // namespace M210_STEREO
+}  // namespace M210_STEREO
 
-
-#endif //ONBOARDSDK_CONFIG_H
+#endif  // ONBOARDSDK_CONFIG_H
