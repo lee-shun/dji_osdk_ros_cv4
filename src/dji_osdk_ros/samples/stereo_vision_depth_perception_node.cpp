@@ -70,16 +70,16 @@ int main(int argc, char **argv) {
     } else {
       ROS_INFO("Please specify a yaml file with camera parameters\n");
       ROS_INFO(
-          "Example: ./stereo-vision-depth-perception-sample "
-          "UserConfig.txt m210_stereo_param.yaml\n");
+          "Example: ./stereo-vision-depth-perception-sample UserConfig.txt "
+          "m210_stereo_param.yaml\n");
       return -1;
     }
   } else if (drone_type.response.drone_type ==
              static_cast<uint8_t>(dji_osdk_ros::Dronetype::M300)) {
     /* code */
     ROS_INFO(
-        "M300 stereo parameters can be got from the drone. So yaml file "
-        "is not need here for M300 stereo camera.");
+        "M300 stereo parameters can be got from the drone. So yaml file is not "
+        "need here for M300 stereo camera.");
 
     /* if (!get_m300_stereo_params_client.call(m300_stereo_params)) */
     /* { */

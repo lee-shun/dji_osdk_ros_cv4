@@ -292,6 +292,7 @@ void StereoFrame::unprojectROSPtCloud() {
     }
   }
 
+  // NOTE(lee-shun): return to beginning
   *x_it_ += -pt_cloud_count;
   *y_it_ += -pt_cloud_count;
   *z_it_ += -pt_cloud_count;

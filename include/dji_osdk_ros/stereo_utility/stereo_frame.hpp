@@ -67,6 +67,7 @@ public:
   inline cv::viz::WCloud getPtCloud() { return this->pt_cloud_; }
 
   inline sensor_msgs::PointCloud2 getROSPtCloud() {
+    printf("in get ros pt cloud\n");
     return this->ros_pt_cloud_;
   }
 
