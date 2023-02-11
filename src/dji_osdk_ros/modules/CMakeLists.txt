@@ -12,6 +12,8 @@ find_path(OPENCV_CONTRIB_IMG_PROC
         /usr/local/include/opencv2/ximgproc
         /opt/local/include/opencv2/ximgproc
         /sw/include/opencv2/ximgproc
+        # path is here!
+        /usr/local/include/opencv4/opencv2/ximgproc
         PATH_SUFFIXES
         opencv2/ximgproc
         )
@@ -25,6 +27,8 @@ find_path(OPENCV_VIZ
         /usr/local/include/opencv2/viz
         /opt/local/include/opencv2/viz
         /sw/include/opencv2/viz
+        # path is here!
+        /usr/local/include/opencv4/opencv2/viz
         PATH_SUFFIXES
         opencv2/viz
         )
@@ -33,7 +37,7 @@ find_path(OPENCV_VIZ
 # Try to see if user has OpenCV installed
 # If there's version 3.3.0+, depth perception samples will be compiled
 # If it's not version 3.3.0+, the sample will not be compiled
-find_package(OpenCV 4.1.1)
+find_package(OpenCV 4.5)
 if (OpenCV_FOUND)
     message( "\n${PROJECT_NAME}...")
     message( STATUS "Found OpenCV ${OpenCV_VERSION} installed in the system, will use it for depth perception sample")
